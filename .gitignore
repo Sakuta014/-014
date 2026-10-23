@@ -1,0 +1,10 @@
+.local/
+.env
+.env.*
+!.env.example
+node_modules/
+*.log
+*token*
+*secret*
+docs/*.png
+dist/assets/wheel-art.png
