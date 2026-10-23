@@ -8,3 +8,4 @@ node_modules/
 *secret*
 docs/*.png
 dist/assets/wheel-art.png
+dist/.layout-check.html

@@ -59,9 +59,9 @@ export class MealService{
   const menu=await this.call('query-meals',{storeCode:store.storeCode,orderType:1,beType:1});
   const candidates=menuCandidates(menu),meals=[],seen=new Set(),failures=[];
   // 查询少量不同主餐，不遍历全菜单；会员随单购套餐在选候选时排除。
-  for(const candidate of candidates.slice(0,16)){
-   if(meals.length===8)break;
-   onProgress(`准备真实餐盘 ${meals.length+1}/8…`);
+  for(const candidate of candidates.slice(0,24)){
+   if(meals.length===12)break;
+   onProgress(`准备真实餐盘 ${meals.length+1}/12…`);
    try{
     const detail=await this.call('query-meal-detail',{storeCode:store.storeCode,orderType:1,beType:1,code:candidate.code});
     const config=defaultConfiguration(detail);if(seen.has(config.signature))continue;
