@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {chooseBoard,boardMeals,restoreBoardItem} from '../dist/board.mjs';
+import {visibleMeals} from '../dist/core.mjs';
 const meals=Array.from({length:12},(_,i)=>({id:String(i),price:1000+i*100,meat:i%2?'beef':'chicken',tags:['不辣']}));
 test('换一批只从符合条件的候选取六份且不重复',()=>{
  const eligible=meals.filter(m=>m.price<=1800),board=chooseBoard(eligible,[],6,()=>.2);
@@ -22,4 +23,15 @@ test('移除、重建盘面再撤销时，餐品实际回到盘面且不超过�
  assert.ok(!ids.includes('0'));removed.delete('0');
  const restored=restoreBoardItem(ids,'0');assert.equal(restored.length,6);assert.ok(boardMeals(meals,restored,{budget:null},removed).some(m=>m.id==='0'));
  assert.equal(restoreBoardItem(restored,'0').length,6);
+});
+test('连续换盘严格拦截牛肉、辣食和无法确认满足忌口的套餐',()=>{
+ const source=[...meals,{id:'unknown',price:1000,meat:null,tags:[]},{id:'spicy',price:1000,meat:'chicken',tags:[]}];
+ const prefs={budget:1800,noBeef:true,nonSpicy:true};let ids=[];
+ for(let round=0;round<20;round++){
+  ids=chooseBoard(visibleMeals(source,prefs),ids);
+  const shown=boardMeals(source,ids,prefs,new Set());assert.ok(shown.length>0);
+  assert.ok(shown.every(m=>m.meat==='chicken'&&m.tags.includes('不辣')&&m.price<=1800));
+ }
+ const unknownOnly=[{id:'unknown',price:1000,meat:null,tags:[]}];
+ assert.deepEqual(chooseBoard(visibleMeals(unknownOnly,prefs)),[]);
 });

@@ -83,7 +83,7 @@ $('refresh-board').onclick=async()=>{
  if(locked)return;const previousBoard=[...boardIds];clearSession();boardIds=previousBoard;
  if(meals.some(m=>!quoteValid(m.quote,storeKey(),ttl))&&!await refreshQuotes())return;
  rebuildBoard();render();const eligible=visibleMeals(meals,prefs).length;
- toast(eligible>6?'已换一批套餐，保留当前预算和忌口':`当前条件下共 ${eligible} 份套餐，已重新打乱盘面`);
+ toast(eligible===0?'没有满足当前预算和忌口的套餐，请调整条件':eligible>6?'已按当前预算和忌口换一批套餐':`符合预算和忌口的共 ${eligible} 份套餐，已重新打乱盘面`);
 };
 $('budget').onchange=()=>{if($('budget').value==='custom'){const value=prompt('这顿预算最多多少元？',prefs.budget/100||35);if(value===null){syncBudget();return;}const amount=Number(value);if(!Number.isFinite(amount)||amount<=0||amount>10000){toast('请输入 0 到 10000 之间的预算');syncBudget();return;}prefs.budget=Math.round(amount*100);}else prefs.budget=$('budget').value===''?null:Number($('budget').value);syncBudget();save();rebuildBoard();render();$('result').hidden=true};
 $('preferences-open').onclick=()=>{$('non-spicy').checked=prefs.nonSpicy;$('no-beef').checked=prefs.noBeef;$('prefs-dialog').showModal()};
