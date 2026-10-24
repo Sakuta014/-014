@@ -83,6 +83,12 @@
 @media(min-width:851px) and (max-height:800px){.wheel-stage{padding:22px 5px 0}.wheel-pointer{top:12px}#spin-center{width:69px;height:69px;border-width:4px}#spin-center span{font-size:25px}.wheel-caption{margin:18px 0 8px}}
 
 /* Budget picker and taste cards share the warm paper palette. */
+#spin-center{display:grid;place-items:center;text-align:center}
+#spin-center .spin-label{position:relative;width:1em;line-height:1;letter-spacing:0;text-indent:0}
+#spin-center .spin-label i{position:absolute;left:100%;top:0;transform:translateX(-.24em);font:inherit;font-style:normal;line-height:1;pointer-events:none}
+#connect-local{display:block;width:100%;margin:0 0 14px}
+#settings-dialog .row{gap:12px;flex-wrap:wrap;margin:0 0 16px}
+#settings-dialog .row button{margin:0}
 .custom-budget input{appearance:textfield;-moz-appearance:textfield}.custom-budget input::-webkit-inner-spin-button,.custom-budget input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .filter-controls .budget-trigger{display:flex;align-items:center;gap:14px;text-align:left}
 .budget-trigger>span:first-child{color:#96816c}.budget-trigger strong{font-weight:600}.filter-controls .budget-trigger>span:last-child{margin-left:auto;color:#ac7457}

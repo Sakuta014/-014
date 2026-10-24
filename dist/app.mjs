@@ -8,7 +8,7 @@ const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 let saved={};try{saved=JSON.parse(localStorage.getItem('meal-wheel-prefs')||'{}')}catch{}
 let prefs={budget:3500,nonSpicy:false,noBeef:false,...saved},ttl=Number(saved.ttl)||5;
 let excluded=new Set(),undo=[],current=null,previous=null,reroll=false,rotation=0,locked=false,visible=[],client=null,tools=[],generation=0,toastTimer;
-let meals=demoMeals,service=null,mode='demo',store=null,foundStores=[];
+let meals=[],service=null,mode='real',store=null,foundStores=[];
 let boardIds=[];
 const storeKey=()=>mode==='real'?store?.storeCode:'demo';
 const priceLabel=()=>mode==='real'?'官方核价':'演示参考价';
@@ -144,12 +144,32 @@ async function loadStore(chosen){
  try{const loaded=await active.load(chosen,message=>{if(version===generation){$('store-status').textContent=message;$('count').textContent=message;}});
   if(version!==generation)return;meals=loaded.meals;rebuildBoard();$('store-status').textContent=`${loaded.meals.length} 份真实餐盘已就绪${loaded.failures.length?'，部分组合未通过核价':''}`;
   $('connection-status').textContent=`已连接 · ${chosen.storeName}`;save();$('settings-dialog').close();toast('真实餐盘已加载，价格均已核实');
- }catch(e){if(version===generation)$('store-status').textContent=e.message;}
+ }catch(e){if(version===generation){$('store-status').textContent=e.message;toast(e.message);$('settings-dialog').showModal();}}
  finally{if(version===generation){locked=false;render();$('search-stores').disabled=false;$('store-list').querySelectorAll('button').forEach(b=>b.disabled=!foundStores[Number(b.dataset.store)]?.businessStatus);}}
 }
 $('demo-mode').onclick=()=>{if(locked)return;generation++;mode='demo';meals=demoMeals;store=null;clearSession();rebuildBoard();render();$('settings-dialog').close();toast('已切换演示，样例与真实餐单分开')};
-$('connect-local').onclick=()=>{$('connection-route').value='proxy';$('token').value='local-file-credential';$('connect').click();};
-fetch('/api/runtime',{credentials:'omit'}).then(r=>r.json()).then(r=>{$('connect-local').hidden=!r.localCredential;}).catch(()=>{});
+let runtimeConfig={};
+async function connectLocal(){
+ $('connection-route').value='proxy';$('token').value='local-file-credential';
+ await $('connect').onclick();if(!service){toast($('connection-status').textContent);$('settings-dialog').showModal();return;}
+ const active=service,version=generation;
+ const city=saved.city||runtimeConfig.city,keyword=saved.keyword||runtimeConfig.keyword||city;
+ const storeCode=saved.lastStore?.storeCode||runtimeConfig.storeCode;
+ if(!city||!storeCode){$('settings-dialog').showModal();toast('已连接真实账号，请选择餐厅');return;}
+ $('store-city').value=city;$('store-keyword').value=keyword;
+ $('count').textContent='正在加载真实门店和套餐…';
+ try{const found=await active.stores(city,keyword);if(version!==generation||service!==active)return;foundStores=found;
+  const chosen=found.find(s=>String(s.storeCode)===String(storeCode)&&s.businessStatus===true);
+  if(!chosen){$('settings-dialog').showModal();$('store-status').textContent='上次餐厅当前不可用，请重新搜索选择';toast('上次餐厅当前不可用，请重新选择');return;}
+  await loadStore(chosen);
+ }catch(e){if(version!==generation)return;$('connection-status').textContent=e.message;toast(e.message);$('settings-dialog').showModal();}
+}
+$('connect-local').onclick=connectLocal;
+const startupGeneration=generation;
+fetch('/api/runtime',{credentials:'omit'}).then(r=>{if(!r.ok)throw new Error('本机服务不可用');return r.json();}).then(async r=>{
+ runtimeConfig=r;$('connect-local').hidden=!r.localCredential;if(generation!==startupGeneration)return;
+ if(r.localCredential)await connectLocal();else{$('settings-dialog').showModal();$('connection-status').textContent='请连接真实账号；演示模式仅在手动选择后开启。';}
+}).catch(e=>{if(generation!==startupGeneration)return;toast(e.message);$('settings-dialog').showModal();});
 function schema(){const t=tools.find(t=>t.name===$('tool-name').value);$('tool-schema').textContent=JSON.stringify(t?.inputSchema||{},null,2)}$('tool-name').onchange=schema;
 $('tool-call').onclick=async()=>{if(!client)return;const attempt=client;$('tool-call').disabled=true;$('tool-output').textContent='查询中…';try{const args=JSON.parse($('tool-args').value);if(!args||Array.isArray(args)||typeof args!=='object')throw new Error('参数应为 JSON 对象');const result=await attempt.call($('tool-name').value,args);if(client===attempt)$('tool-output').textContent=JSON.stringify(result,null,2);}catch(e){if(client===attempt)$('tool-output').textContent=e.message}finally{$('tool-call').disabled=false}};
 $('disconnect').onclick=()=>{generation++;client?.disconnect();client=null;service=null;tools=[];foundStores=[];locked=false;if(mode==='real'){meals=[];store=null;clearSession();render();}$('token').value='';$('tool-output').textContent='';$('tool-schema').textContent='';$('tool-args').value='{}';$('tools-panel').hidden=true;$('store-panel').hidden=true;$('store-list').replaceChildren();$('connection-status').textContent='已断开，凭证和查询内容已清除'};
