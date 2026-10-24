@@ -62,7 +62,7 @@ node scripts/verify-live.mjs /path/to/private-credential.txt 南京 新街口
 
 ## 公网部署
 
-在服务器创建独立目录，代码放 `app/`，订单记录目录为 `data/`，Token 文件放 `secrets/mcd-credential`（目录 700、文件 600）。把 `deploy/compose.server.yml` 复制为部署目录根部的 `docker-compose.yml`；参考 `deploy/server.env.example` 配置同目录 `.env`。数据与凭证目录不得打包进代码或上传 GitHub。
+在服务器创建独立目录，代码放 `app/`，订单记录目录为 `data/`，Token 文件放 `secrets/mcd-credential`（目录 700、文件 600）。把 `deploy/compose.server.yml` 复制为部署目录根部的 `docker-compose.yml`；参考 `deploy/server.env.example` 配置同目录 `.env`。启动前执行 `mkdir -p app/.local data secrets`，其中 `app/.local` 是只读代码挂载内的空挂载点；将 `data/` 和凭证文件权限交给容器使用的 UID 1000。数据与凭证目录不得打包进代码或上传 GitHub。
 
 现有 Caddy 与应用加入同一个 `gateway` Docker 网络；应用不发布宿主机端口，Caddy 反向代理到 `mcd-meal-wheel:5178`。必须为整个域名配置 `basic_auth` 体验密码，再开放访问。`PUBLIC_ORIGIN` 应精确设置为 HTTPS 域名，写操作仍严格校验 Host 与 Origin。
 
