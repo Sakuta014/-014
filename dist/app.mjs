@@ -1,6 +1,5 @@
 import {dietaryOptions,visibleMeals,nextSpinPool,undoRemoval,quoteValid,quoteResponseMatches,selectIndex,landingRotation} from './core.mjs';
-import {demoMeals} from './demo.mjs';
-import {McpClient,probeConnection} from './mcp.mjs';
+import {McpClient} from './mcp.mjs';
 import {MealService} from './adapter.mjs';
 import {chooseBoard,boardMeals,restoreBoardItem} from './board.mjs';
 const $=id=>document.getElementById(id),money=c=>`¥${(c/100).toFixed(2)}`;
@@ -40,7 +39,6 @@ function render(){
  $('count').textContent=n===1?'只剩这一份啦':`${n} 份餐盘 · 每格等概率`;
  $('empty').hidden=n!==0;$('empty').textContent=meals.length&&excluded.size===meals.length?'这轮都不想吃？恢复本轮移除，或新开一轮。':reroll?'暂时没有可重抽的餐盘，试试调整条件或新开一轮。':mode==='real'&&prefs.nonSpicy?'官方数据没有充分的不辣标签，无法确认的组合已排除。可以调整偏好。':'没有符合条件的餐盘，试试调整预算、偏好或重新加载门店。';
  $('store-name').textContent=mode==='real'?(store?.storeName||'请确认真实门店'):'演示餐厅';
- $('mode-banner').textContent=mode==='real'?'真实模式 · 官方套餐图与核价':'演示模式 · 官方套餐图 · 价格为示例';
  $('store-change').disabled=locked;$('settings-open').disabled=locked;
  $('result').querySelectorAll('button').forEach(b=>b.disabled=locked||(b.id==='go-previous'&&!previous));
  $('pref-count').textContent=dietaryOptions.filter(o=>prefs[o.key]).length||'＋';
@@ -112,21 +110,18 @@ $('save-prefs').onclick=()=>{prefs=draftTaste();save();rebuildBoard();render();$
 $('reset').onclick=()=>{excluded.clear();undo=[];current=null;previous=null;reroll=false;delete prefs.notFried;delete prefs.meat;$('result').hidden=true;rebuildBoard();render();toast('新的一轮，保留预算和明确偏好')};
 $('restore').onclick=()=>{excluded.clear();undo=[];rebuildBoard();render();toast('本轮移除已恢复，仍遵守当前条件')};
 $('clear').onclick=()=>{try{localStorage.removeItem('meal-wheel-prefs')}catch{}prefs={budget:3500,nonSpicy:false,noBeef:false};ttl=5;syncBudget();rebuildBoard();render();toast('本机偏好已清除')};
-$('settings-open').onclick=()=>{$('quote-ttl').value=ttl;$('settings-dialog').showModal()};$('store-change').onclick=()=>{$('settings-dialog').showModal();if(!service)toast('连接 MCP 后即可搜索真实门店')};
+$('settings-open').onclick=()=>{$('quote-ttl').value=ttl;$('settings-dialog').showModal()};$('store-change').onclick=()=>{$('settings-dialog').showModal();if(!service)toast('正在连接餐厅，请稍候')};
 $('save-settings').onclick=()=>{const n=Number($('quote-ttl').value);if(!Number.isInteger(n)||n<1||n>60){toast('有效期可设为 1–60 分钟');return;}ttl=n;save();toast('设置已保存')};
-$('check-connection').onclick=async()=>{const button=$('check-connection');button.disabled=true;$('probe-status').textContent='正在检查浏览器连接，不使用个人 Token…';try{const result=await probeConnection(fetch, document.getElementById("connection-route").value==='proxy'?'/api/mcp':'https://mcp.mcd.cn');$('probe-status').textContent=result.message;}finally{button.disabled=false;}};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
-$('connect').onclick=async()=>{
- let token=$('token').value.trim().replace(/^Bearer\s+/i,'');if(!token){toast('请填写 Token');return;}
+async function connectAccount(){
  client?.disconnect();service=null;generation++;locked=false;$('search-stores').disabled=false;clearSession();mode='real';meals=[];store=null;render();
- const attempt=new McpClient(token,fetch,$('connection-route').value==='proxy'?'/api/mcp':'https://mcp.mcd.cn');client=attempt;token='';$('token').value='';$('connect').disabled=true;$('store-panel').hidden=true;$('tools-panel').hidden=true;$('connection-status').textContent='连接官方 MCP 并发现工具中…';
+ const attempt=new McpClient('local-file-credential',fetch,'/api/mcp');client=attempt;$('reconnect').disabled=true;$('store-panel').hidden=true;$('connection-status').textContent='正在连接餐厅…';
  try{
-  const discovered=await attempt.connect();if(client!==attempt)return;tools=discovered;service=new MealService(attempt);
-  $('connection-status').textContent='已连接官方 MCP。请搜索并确认餐厅，再加载真实餐盘。';$('store-panel').hidden=false;
-  $('tools-panel').hidden=false;$('tool-name').replaceChildren(...tools.filter(t=>['now-time-info','query-nearby-stores','query-meals','query-meal-detail','query-store-coupons','calculate-price','list-nutrition-foods'].includes(t.name)).map(t=>new Option(t.name,t.name)));schema();
- }catch(e){if(client===attempt){attempt.disconnect();client=null;service=null;$('connection-status').textContent=e.message;}}
- finally{$('connect').disabled=false;}
-};
+  await attempt.connect();if(client!==attempt)return;service=new MealService(attempt);
+  $('connection-status').textContent='已连接，可以选择餐厅';$('store-panel').hidden=false;$('reconnect').hidden=true;
+ }catch(e){if(client===attempt){attempt.disconnect();client=null;service=null;$('connection-status').textContent=e.message;$('reconnect').hidden=false;}}
+ finally{$('reconnect').disabled=false;}
+}
 function clearSession(){excluded.clear();undo=[];current=null;previous=null;reroll=false;boardIds=[];$('result').hidden=true;}
 $('search-stores').onclick=async()=>{
  if(!service)return;const city=$('store-city').value.trim(),keyword=$('store-keyword').value.trim()||city;if(!city){toast('请填写城市');return;}
@@ -142,16 +137,14 @@ async function loadStore(chosen){
  if(locked||!service)return;const version=++generation,active=service;locked=true;mode='real';store=chosen;meals=[];clearSession();render();$('search-stores').disabled=true;
  $('store-list').querySelectorAll('button').forEach(b=>b.disabled=true);
  try{const loaded=await active.load(chosen,message=>{if(version===generation){$('store-status').textContent=message;$('count').textContent=message;}});
-  if(version!==generation)return;meals=loaded.meals;rebuildBoard();$('store-status').textContent=`${loaded.meals.length} 份真实餐盘已就绪${loaded.failures.length?'，部分组合未通过核价':''}`;
+  if(version!==generation)return;meals=loaded.meals;rebuildBoard();$('store-status').textContent=`已备好 ${loaded.meals.length} 份可选套餐`;
   $('connection-status').textContent=`已连接 · ${chosen.storeName}`;save();$('settings-dialog').close();toast('真实餐盘已加载，价格均已核实');
  }catch(e){if(version===generation){$('store-status').textContent=e.message;toast(e.message);$('settings-dialog').showModal();}}
  finally{if(version===generation){locked=false;render();$('search-stores').disabled=false;$('store-list').querySelectorAll('button').forEach(b=>b.disabled=!foundStores[Number(b.dataset.store)]?.businessStatus);}}
 }
-$('demo-mode').onclick=()=>{if(locked)return;generation++;mode='demo';meals=demoMeals;store=null;clearSession();rebuildBoard();render();$('settings-dialog').close();toast('已切换演示，样例与真实餐单分开')};
 let runtimeConfig={};
 async function connectLocal(){
- $('connection-route').value='proxy';$('token').value='local-file-credential';
- await $('connect').onclick();if(!service){toast($('connection-status').textContent);$('settings-dialog').showModal();return;}
+ await connectAccount();if(!service){toast($('connection-status').textContent);$('settings-dialog').showModal();return;}
  const active=service,version=generation;
  const city=saved.city||runtimeConfig.city,keyword=saved.keyword||runtimeConfig.keyword||city;
  const storeCode=saved.lastStore?.storeCode||runtimeConfig.storeCode;
@@ -164,15 +157,12 @@ async function connectLocal(){
   await loadStore(chosen);
  }catch(e){if(version!==generation)return;$('connection-status').textContent=e.message;toast(e.message);$('settings-dialog').showModal();}
 }
-$('connect-local').onclick=connectLocal;
+$('reconnect').onclick=connectLocal;
 const startupGeneration=generation;
 fetch('/api/runtime',{credentials:'omit'}).then(r=>{if(!r.ok)throw new Error('本机服务不可用');return r.json();}).then(async r=>{
- runtimeConfig=r;$('connect-local').hidden=!r.localCredential;if(generation!==startupGeneration)return;
- if(r.localCredential)await connectLocal();else{$('settings-dialog').showModal();$('connection-status').textContent='请连接真实账号；演示模式仅在手动选择后开启。';}
+ runtimeConfig=r;if(generation!==startupGeneration)return;
+ if(r.localCredential)await connectLocal();else{$('settings-dialog').showModal();$('connection-status').textContent='餐厅连接暂不可用，请检查本机服务配置';$('reconnect').hidden=false;}
 }).catch(e=>{if(generation!==startupGeneration)return;toast(e.message);$('settings-dialog').showModal();});
-function schema(){const t=tools.find(t=>t.name===$('tool-name').value);$('tool-schema').textContent=JSON.stringify(t?.inputSchema||{},null,2)}$('tool-name').onchange=schema;
-$('tool-call').onclick=async()=>{if(!client)return;const attempt=client;$('tool-call').disabled=true;$('tool-output').textContent='查询中…';try{const args=JSON.parse($('tool-args').value);if(!args||Array.isArray(args)||typeof args!=='object')throw new Error('参数应为 JSON 对象');const result=await attempt.call($('tool-name').value,args);if(client===attempt)$('tool-output').textContent=JSON.stringify(result,null,2);}catch(e){if(client===attempt)$('tool-output').textContent=e.message}finally{$('tool-call').disabled=false}};
-$('disconnect').onclick=()=>{generation++;client?.disconnect();client=null;service=null;tools=[];foundStores=[];locked=false;if(mode==='real'){meals=[];store=null;clearSession();render();}$('token').value='';$('tool-output').textContent='';$('tool-schema').textContent='';$('tool-args').value='{}';$('tools-panel').hidden=true;$('store-panel').hidden=true;$('store-list').replaceChildren();$('connection-status').textContent='已断开，凭证和查询内容已清除'};
 let drag=null,dragged=false;
 $('wheel').addEventListener('pointerdown',e=>{if(locked||e.button!==0)return;const item=e.target.closest('[data-id]');if(!item)return;dragged=false;drag={id:item.dataset.id,x:e.clientX,y:e.clientY,pointer:e.pointerId,active:false};});
 $('wheel').addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(!drag.active){if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>12){drag=null;return;}if(Math.hypot(dx,dy)<14)return;drag.active=true;dragged=true;$('wheel').setPointerCapture(e.pointerId);document.body.classList.add('dragging');$('remove-zone').hidden=false;drag.ghost=document.createElement('div');drag.ghost.className='drag-ghost';drag.ghost.textContent=meals.find(m=>m.id===drag.id).name;document.body.append(drag.ghost);}e.preventDefault();drag.ghost.style.left=`${e.clientX+12}px`;drag.ghost.style.top=`${e.clientY-30}px`;const r=$('wheel').getBoundingClientRect();drag.outside=Math.hypot(e.clientX-r.x-r.width/2,e.clientY-r.y-r.height/2)>r.width/2+25;$('remove-zone').classList.toggle('over',drag.outside);$('remove-zone').textContent=drag.outside?'松手，移除这顿餐盘 ×':'拖到餐盘外侧移除';},{passive:false});
