@@ -32,7 +32,7 @@ function render(){
   const image=m.image?`<image class="wheel-food" href="${escape(m.image)}" x="${pos[0]-60}" y="${pos[1]-74}" width="120" height="90" preserveAspectRatio="xMidYMid meet"/>`:`<text x="${pos[0]}" y="${pos[1]-22}" text-anchor="middle" font-size="12">套餐图片暂缺</text>`;
   return `<g tabindex="0" role="button" data-id="${m.id}" aria-label="${escape(m.name)}，${priceLabel()}${m.price/100}元，查看或移除"><path class="wheel-slice" d="${d}" fill="${colors[i]}" stroke="#fffdf7" stroke-width="3"/>${image}<text class="wheel-name" x="${pos[0]}" y="${pos[1]+29}" text-anchor="middle" font-size="14" font-weight="700" fill="#44342a">${lines.map((line,j)=>`<tspan x="${pos[0]}" dy="${j?17:0}">${escape(line)}</tspan>`).join('')}</text><text class="wheel-price" x="${pos[0]}" y="${pos[1]+(lines.length>1?65:51)}" text-anchor="middle" font-size="12" fill="#977757">套餐 ${money(m.price)}</text></g>`;
  }).join('');
- $('spin').disabled=locked||n===0;$('spin-center').disabled=locked||n===0;$('spin').innerHTML=n===1?'查看这一份 <span>↗</span>':'一键随机 <span>↗</span>';
+ $('spin-center').disabled=locked||n===0;
  $('refresh-board').disabled=locked||meals.length===0;
  $('budget').disabled=locked;$('preferences-open').disabled=locked;$('reset').disabled=locked;$('restore').disabled=locked;$('clear').disabled=locked;
  $('count').textContent=n===1?'只剩这一份啦':`${n} 份餐盘 · 每格等概率`;
@@ -58,7 +58,7 @@ async function spin(){if(locked||!visible.length)return;if(current&&!reroll){rer
  const duration=snapshot.length===1||matchMedia('(prefers-reduced-motion: reduce)').matches?0:3200;
  if(duration){rotation=landingRotation(rotation,index,snapshot.length);$('wheel').style.transform=`rotate(${rotation}deg)`;await new Promise(r=>setTimeout(r,duration));}
  previous=current;current=chosen;reroll=false;locked=false; // 保持抽中时的盘面，下一次重抽再更新候选。
- $('spin').disabled=false;$('spin-center').disabled=false;for(const id of ['budget','preferences-open','reset','restore','clear','settings-open','store-change','refresh-board'])$(id).disabled=false;
+ $('spin-center').disabled=false;for(const id of ['budget','preferences-open','reset','restore','clear','settings-open','store-change','refresh-board'])$(id).disabled=false;
  showResult();
 }
 function showResult(confirmed=false,notice=''){
@@ -85,7 +85,7 @@ function feedback(kind){if(locked)return;if(kind==='expensive'){$('budget').focu
  const box=$('feedback-choices');box.className='feedback';box.innerHTML=kind==='meat'?'<button data-meat="chicken">鸡肉</button><button data-meat="beef">牛肉</button><button data-meat="fish">鱼肉</button>':'<p class="muted">当前演示组合还没有可靠份量分级；先用移除和重抽挑选，真实餐品接入后再开放份量调整。</p>';
  box.querySelectorAll('[data-meat]').forEach(b=>b.onclick=()=>{if(b.dataset.meat==='beef'&&prefs.noBeef){toast('与你保存的不吃牛肉偏好冲突，请先修改偏好');return;}prefs.meat=b.dataset.meat;reroll=true;rebuildBoard();render();toast('本轮肉类偏好已更新')});
 }
-$('spin').onclick=spin;$('spin-center').onclick=spin;
+$('spin-center').onclick=spin;
 $('refresh-board').onclick=async()=>{
  if(locked)return;const previousBoard=[...boardIds];clearSession();boardIds=previousBoard;
  if(meals.some(m=>!quoteValid(m.quote,storeKey(),ttl))&&!await refreshQuotes())return;
