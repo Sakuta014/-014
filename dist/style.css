@@ -85,7 +85,7 @@
 /* Budget picker and taste cards share the warm paper palette. */
 #spin-center{display:grid;place-items:center;text-align:center}
 #spin-center .spin-label{position:relative;width:1em;line-height:1;letter-spacing:0;text-indent:0}
-#spin-center .spin-label i{position:absolute;left:100%;top:0;transform:translateX(-.24em);font:inherit;font-style:normal;line-height:1;pointer-events:none}
+#spin-center .spin-label i{position:absolute;left:100%;top:0;transform:translateX(-.04em);font:inherit;font-style:normal;line-height:1;pointer-events:none}
 #connect-local{display:block;width:100%;margin:0 0 14px}
 #settings-dialog .row{gap:12px;flex-wrap:wrap;margin:0 0 16px}
 #settings-dialog .row button{margin:0}
