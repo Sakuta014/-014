@@ -16,14 +16,9 @@ services:
       HOST: 0.0.0.0
       PORT: 5178
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
-      MCD_TOKEN_FILE: /run/secrets/mcd-credential
-      MCD_CITY: ${MCD_CITY:-}
-      MCD_KEYWORD: ${MCD_KEYWORD:-}
-      MCD_STORE_CODE: ${MCD_STORE_CODE:-}
     volumes:
       - ./app:/app:ro
       - ./data:/app/.local
-      - ./secrets/mcd-credential:/run/secrets/mcd-credential:ro
     networks:
       gateway:
         aliases: [mcd-meal-wheel]

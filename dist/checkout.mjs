@@ -36,5 +36,5 @@ export function mountCheckout(getSelection){
   try{const d=await api('prepare',{storeCode:String(selected.store.storeCode),productCode:selected.meal.code,signature:selected.meal.signature,city:selected.city,keyword:selected.keyword||selected.city,budget:selected.budget});if(d.state==='prepared')renderDraft(d);else renderOrder(d);}catch(e){error(e.message);}finally{setBusy(false);}
  }
  view.onclick=async()=>{if(busy||!lastId)return;show();setBusy(true);body.innerHTML='<h2>正在查询订单…</h2>';try{renderOrder(await api('status',{id:lastId}));}catch(e){body.innerHTML=`<h2>暂时查不到订单</h2><p class="order-message">${escape(e.message)}，请在麦当劳 App 核实，勿重复下单。</p>`;}finally{setBusy(false);}};
- return {open};
+ return {open,reset(){lastId='';last=null;view.hidden=true;try{sessionStorage.removeItem('meal-order-id');}catch{}}};
 }

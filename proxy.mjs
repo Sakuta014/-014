@@ -17,11 +17,10 @@ export async function proxyMcp(req,res,localCredential=''){
  try{
   let size=0,chunks=[];for await(const chunk of req){size+=chunk.length;if(size>256*1024){fail(413,'请求过大');return;}chunks.push(chunk);}
   let body;try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{fail(400,'参数不是有效 JSON');return;}
-  const useLocal=req.headers['x-mcd-local-credential']==='1'||req.headers.authorization==='Bearer local-file-credential';
-  const error=validateProxyRequest({host:req.headers.host,origin:req.headers.origin,method:req.method,authorization:useLocal?'Bearer local-file-credential':req.headers.authorization,body});
+  const error=validateProxyRequest({host:req.headers.host,origin:req.headers.origin,method:req.method,authorization:localCredential?'Bearer visitor-session':'',body});
   if(error){fail(403,error);return;}
-  if(useLocal&&!localCredential){fail(401,'本机未配置凭证文件');return;}
-  const headers={Authorization:useLocal?`Bearer ${localCredential}`:req.headers.authorization,'Content-Type':'application/json',Accept:'application/json, text/event-stream'};
+  if(!localCredential){fail(401,'请先连接你自己的麦当劳账号');return;}
+  const headers={Authorization:`Bearer ${localCredential}`,'Content-Type':'application/json',Accept:'application/json, text/event-stream'};
   for(const name of ['mcp-session-id','mcp-protocol-version'])if(req.headers[name])headers[name]=req.headers[name];
   const response=await fetch('https://mcp.mcd.cn',{method:'POST',headers,body:JSON.stringify(body),redirect:'error',signal:abort.signal});
   const output={'Content-Type':response.headers.get('content-type')||'application/json','Cache-Control':'no-store'};
