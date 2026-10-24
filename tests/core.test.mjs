@@ -11,6 +11,14 @@ test('重抽先更新池，优先切换肉类；不恢复已移除项',()=>{
  assert.deepEqual(nextSpinPool([meals[0]],meals[0]),[]);
 });
 test('未知标签不能当作满足忌口',()=>assert.deepEqual(visibleMeals(meals,{budget:null,nonSpicy:true},new Set()).map(m=>m.id),['a','b']));
+
+test('新增忌口组合排除对应肉类、配餐中的肉类和未知数据',()=>{
+ const pool=[...meals,{id:'pork',price:1000,meat:'pork',tags:[],items:['猪柳堡']},{id:'mixed',price:1000,meat:'chicken',tags:[],items:['鸡腿堡','培根']},{id:'unknown',price:1000,meat:null,tags:[]}];
+ assert.deepEqual(visibleMeals(pool,{noChicken:true,noPork:true}).map(m=>m.id),['b','c']);
+ assert.deepEqual(visibleMeals(pool,{noFish:true,noBeef:true,noPork:true}).map(m=>m.id),['a']);
+ assert.deepEqual(visibleMeals(pool,{avoidFried:true}).map(m=>m.id),['b']);
+ assert.deepEqual(visibleMeals(pool,{noChicken:true,noBeef:true,noFish:true,noPork:true}),[]);
+});
 test('撤销时条件冲突保留排除记录',()=>{
  const excluded=new Set(['c']); assert.equal(undoRemoval('c',meals,{budget:3500},excluded),false);assert.ok(excluded.has('c'));
  assert.equal(undoRemoval('c',meals,{budget:null},excluded),true);assert.equal(excluded.size,0);

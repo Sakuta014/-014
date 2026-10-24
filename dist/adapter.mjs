@@ -41,7 +41,7 @@ export function menuCandidates(menu){
 }
 function attributes(parts,menu){
  const name=parts[0]?.name||'',tags=parts.flatMap(p=>{const found=menu.categories?.flatMap(c=>c.meals||[]).find(x=>x.code===p.code);return found?.tags||[]});
- let meat=/鸡/.test(name)?'chicken':/鱼|鳕/.test(name)?'fish':/牛|巨无霸|吉士汉堡|不素之霸/.test(name)?'beef':null;
+ let meat=/鸡/.test(name)?'chicken':/鱼|鳕/.test(name)?'fish':/猪|培根|火腿/.test(name)?'pork':/牛|巨无霸|吉士汉堡|不素之霸/.test(name)?'beef':null;
  const fried=/板烧|烤/.test(name)?false:/麦辣|麦香鸡|鱼|鸡排|酥/.test(name)?true:null;
  return {meat,fried,tags,mainCode:parts[0]?.code};
 }

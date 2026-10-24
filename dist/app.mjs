@@ -1,4 +1,4 @@
-import {visibleMeals,nextSpinPool,undoRemoval,quoteValid,quoteResponseMatches,selectIndex,landingRotation} from './core.mjs';
+import {dietaryOptions,visibleMeals,nextSpinPool,undoRemoval,quoteValid,quoteResponseMatches,selectIndex,landingRotation} from './core.mjs';
 import {demoMeals} from './demo.mjs';
 import {McpClient,probeConnection} from './mcp.mjs';
 import {MealService} from './adapter.mjs';
@@ -14,9 +14,11 @@ const storeKey=()=>mode==='real'?store?.storeCode:'demo';
 const priceLabel=()=>mode==='real'?'官方核价':'演示参考价';
 function mealImage(m){return m.image?`<img class="food-image" src="${escape(m.image)}" alt="${escape(m.name)}" referrerpolicy="no-referrer">`:'<span class="food-placeholder">套餐图片暂缺</span>';}
 const colors=['#ffe7a8','#fff8e8','#f9e1cf','#fff8e8','#ffe7a8','#fff8e8','#f9e1cf','#fff8e8'];
-const save=()=>{try{localStorage.setItem('meal-wheel-prefs',JSON.stringify({budget:prefs.budget,nonSpicy:prefs.nonSpicy,noBeef:prefs.noBeef,ttl,city:$('store-city').value.trim(),keyword:$('store-keyword').value.trim(),lastStore:store?{storeName:store.storeName,storeCode:store.storeCode}:null}))}catch{toast('浏览器未允许保存偏好')}};
+const save=()=>{try{localStorage.setItem('meal-wheel-prefs',JSON.stringify({budget:prefs.budget,...Object.fromEntries(dietaryOptions.map(o=>[o.key,!!prefs[o.key]])),ttl,city:$('store-city').value.trim(),keyword:$('store-keyword').value.trim(),lastStore:store?{storeName:store.storeName,storeCode:store.storeCode}:null}))}catch{toast('浏览器未允许保存偏好')}};
 function toast(message,canUndo=false){clearTimeout(toastTimer);$('toast').querySelector('span').textContent=message;$('undo').hidden=!canUndo;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,5000)}
-function syncBudget(){let value=prefs.budget==null?'':String(prefs.budget);if(![...$('budget').options].some(o=>o.value===value)){const option=new Option(`${prefs.budget/100} 元以内`,value);$('budget').add(option)}$('budget').value=value}
+function syncBudget(){$('budget-label').textContent=prefs.budget==null?'不限':`${prefs.budget/100} 元以内`;}
+function applyBudget(amount){prefs.budget=amount;syncBudget();save();rebuildBoard();render();$('result').hidden=true;$('budget-dialog').close();}
+
 function rebuildBoard(){const eligible=visibleMeals(meals,prefs,excluded);boardIds=chooseBoard(reroll?nextSpinPool(eligible,current):eligible,boardIds);}
 function pool(){return boardMeals(meals,boardIds,prefs,excluded);}
 function polar(radius,angle){const r=angle*Math.PI/180;return [250+radius*Math.sin(r),250-radius*Math.cos(r)]}
@@ -41,7 +43,7 @@ function render(){
  $('mode-banner').textContent=mode==='real'?'真实模式 · 官方套餐图与核价':'演示模式 · 官方套餐图 · 价格为示例';
  $('store-change').disabled=locked;$('settings-open').disabled=locked;
  $('result').querySelectorAll('button').forEach(b=>b.disabled=locked||(b.id==='go-previous'&&!previous));
- $('pref-count').textContent=[prefs.nonSpicy,prefs.noBeef].filter(Boolean).length||'＋';
+ $('pref-count').textContent=dietaryOptions.filter(o=>prefs[o.key]).length||'＋';
  $('active-feedback').hidden=!prefs.notFried&&!prefs.meat;
  $('active-feedback').textContent=`本轮偏好：${prefs.notFried?'不吃油炸主餐 ':''}${prefs.meat?{chicken:'想吃鸡肉',beef:'想吃牛肉',fish:'想吃鱼肉'}[prefs.meat]:''} · 新开一轮可清除`;
  $('undo').hidden=undo.length===0;
@@ -83,7 +85,7 @@ function showResult(confirmed=false,notice=''){
 }
 function feedback(kind){if(locked)return;if(kind==='expensive'){$('budget').focus();toast('选择一个更合适的预算');return;}if(kind==='fried'){prefs.notFried=true;reroll=true;rebuildBoard();render();toast('本轮已排除油炸主餐');return;}
  const box=$('feedback-choices');box.className='feedback';box.innerHTML=kind==='meat'?'<button data-meat="chicken">鸡肉</button><button data-meat="beef">牛肉</button><button data-meat="fish">鱼肉</button>':'<p class="muted">当前演示组合还没有可靠份量分级；先用移除和重抽挑选，真实餐品接入后再开放份量调整。</p>';
- box.querySelectorAll('[data-meat]').forEach(b=>b.onclick=()=>{if(b.dataset.meat==='beef'&&prefs.noBeef){toast('与你保存的不吃牛肉偏好冲突，请先修改偏好');return;}prefs.meat=b.dataset.meat;reroll=true;rebuildBoard();render();toast('本轮肉类偏好已更新')});
+ box.querySelectorAll('[data-meat]').forEach(b=>b.onclick=()=>{if(({beef:prefs.noBeef,chicken:prefs.noChicken,fish:prefs.noFish})[b.dataset.meat]){toast('与你保存的忌口冲突，请先修改忌口');return;}prefs.meat=b.dataset.meat;reroll=true;rebuildBoard();render();toast('本轮肉类偏好已更新')});
 }
 $('spin-center').onclick=spin;
 $('refresh-board').onclick=async()=>{
@@ -92,9 +94,21 @@ $('refresh-board').onclick=async()=>{
  rebuildBoard();render();const eligible=visibleMeals(meals,prefs).length;
  toast(eligible===0?'没有满足当前预算和忌口的套餐，请调整条件':eligible>6?'已按当前预算和忌口换一批套餐':`符合预算和忌口的共 ${eligible} 份套餐，已重新打乱盘面`);
 };
-$('budget').onchange=()=>{if($('budget').value==='custom'){const value=prompt('这顿预算最多多少元？',prefs.budget/100||35);if(value===null){syncBudget();return;}const amount=Number(value);if(!Number.isFinite(amount)||amount<=0||amount>10000){toast('请输入 0 到 10000 之间的预算');syncBudget();return;}prefs.budget=Math.round(amount*100);}else prefs.budget=$('budget').value===''?null:Number($('budget').value);syncBudget();save();rebuildBoard();render();$('result').hidden=true};
-$('preferences-open').onclick=()=>{$('non-spicy').checked=prefs.nonSpicy;$('no-beef').checked=prefs.noBeef;$('prefs-dialog').showModal()};
-$('save-prefs').onclick=()=>{prefs.nonSpicy=$('non-spicy').checked;prefs.noBeef=$('no-beef').checked;save();rebuildBoard();render();$('result').hidden=true;$('prefs-dialog').close()};
+$('budget').onclick=()=>{
+ $('budget-options').innerHTML=[2000,2500,3000,3500,4000,5000,null].map(value=>`<button type="button" data-budget="${value??''}" aria-pressed="${prefs.budget===value}"><strong>${value==null?'随心选':value/100+'<small> 元</small>'}</strong><span>${value==null?'预算不限':value===3500?'刚刚好':'以内'}</span><i aria-hidden="true">✓</i></button>`).join('');
+ $('budget-options').querySelectorAll('button').forEach(button=>button.onclick=()=>applyBudget(button.dataset.budget===''?null:Number(button.dataset.budget)));
+ $('custom-budget').value=prefs.budget==null?'':prefs.budget/100;$('budget-error').textContent='';$('budget-dialog').showModal();
+};
+$('custom-budget-form').onsubmit=e=>{e.preventDefault();const amount=Number($('custom-budget').value);if(!Number.isFinite(amount)||amount<=0||amount>10000){$('budget-error').textContent='请输入 0 到 10000 之间的金额';return;}applyBudget(Math.round(amount*100));};
+const dietaryId=key=>'taste-'+key;
+function draftTaste(){return {...prefs,...Object.fromEntries(dietaryOptions.map(o=>[o.key,$(dietaryId(o.key)).checked]))};}
+function updateTastePreview(){const draft=draftTaste(),count=visibleMeals(meals,draft).length,selected=dietaryOptions.filter(o=>draft[o.key]).length;$('taste-preview').textContent=`已选 ${selected} 项 · 当前 ${count} 份套餐可选`;$('taste-preview').classList.toggle('no-matches',count===0);}
+$('preferences-open').onclick=()=>{
+ $('dietary-options').innerHTML=dietaryOptions.map(o=>`<label class="taste-option"><input type="checkbox" id="${dietaryId(o.key)}" ${prefs[o.key]?'checked':''}><span class="taste-copy"><strong>${o.label}</strong><small>${o.hint}</small></span><span class="taste-check" aria-hidden="true">✓</span></label>`).join('');
+ $('dietary-options').querySelectorAll('input').forEach(input=>input.onchange=updateTastePreview);updateTastePreview();$('prefs-dialog').showModal();
+};
+$('clear-dietary').onclick=()=>{$('dietary-options').querySelectorAll('input').forEach(input=>input.checked=false);updateTastePreview();};
+$('save-prefs').onclick=()=>{prefs=draftTaste();save();rebuildBoard();render();$('result').hidden=true;$('prefs-dialog').close();};
 $('reset').onclick=()=>{excluded.clear();undo=[];current=null;previous=null;reroll=false;delete prefs.notFried;delete prefs.meat;$('result').hidden=true;rebuildBoard();render();toast('新的一轮，保留预算和明确偏好')};
 $('restore').onclick=()=>{excluded.clear();undo=[];rebuildBoard();render();toast('本轮移除已恢复，仍遵守当前条件')};
 $('clear').onclick=()=>{try{localStorage.removeItem('meal-wheel-prefs')}catch{}prefs={budget:3500,nonSpicy:false,noBeef:false};ttl=5;syncBudget();rebuildBoard();render();toast('本机偏好已清除')};

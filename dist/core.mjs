@@ -1,5 +1,21 @@
+export const dietaryOptions=[
+ {key:'nonSpicy',label:'不辣',hint:'只选明确标注不辣的'},
+ {key:'noBeef',label:'不吃牛肉',hint:'避开牛肉主餐'},
+ {key:'noChicken',label:'不吃鸡肉',hint:'避开鸡肉主餐'},
+ {key:'noFish',label:'不吃鱼肉',hint:'避开鱼肉主餐'},
+ {key:'noPork',label:'不吃猪肉',hint:'避开猪肉、培根和火腿'},
+ {key:'avoidFried',label:'主餐不油炸',hint:'配餐仍可能有薯条'}
+];
 export function visibleMeals(pool, prefs, excluded=new Set()) {
- return pool.filter(m=>!excluded.has(m.id)&&(prefs.budget==null||m.price<=prefs.budget)&&(!prefs.nonSpicy||m.tags.includes('不辣'))&&(!prefs.noBeef||(m.meat!=null&&m.meat!=='beef'))&&(!prefs.notFried||m.fried===false)&&(!prefs.meat||m.meat===prefs.meat));
+ return pool.filter(m=>{
+  if(excluded.has(m.id)||(prefs.budget!=null&&m.price>prefs.budget))return false;
+  if(prefs.nonSpicy&&!m.tags.includes('不辣'))return false;
+  const names=(m.items||[]).join(' ');
+  for(const [key,meat,pattern] of [['noBeef','beef',/牛|巨无霸|吉士汉堡/],['noChicken','chicken',/鸡/],['noFish','fish',/鱼|鳕/],['noPork','pork',/猪|培根|火腿/]]){
+   if(prefs[key]&&(m.meat==null||m.meat===meat||pattern.test(names)))return false;
+  }
+  return (!(prefs.notFried||prefs.avoidFried)||m.fried===false)&&(!prefs.meat||m.meat===prefs.meat);
+ });
 }
 export function nextSpinPool(pool, previous){
  if(!previous)return pool;
