@@ -62,3 +62,22 @@
  .wheel-actions .spin-button{padding:12px 16px;font-size:15px}.refresh-button{padding:12px 10px;font-size:13px}
  .under-spin{margin-top:12px;font-size:10px}.left-note p,.right-note p{font-size:11px}.scribble{font-size:23px}
 }
+
+/* A quieter plate: the food is the focus. */
+.wheel-stage{padding-top:28px}
+.wheel-stage:before{inset:6px 0 30px;background:radial-gradient(ellipse at center,#f4d8a840 0,transparent 70%);opacity:1;border-radius:50%}
+.wheel-frame{border:7px solid #fffdf7;background:#fffdf7;box-shadow:0 0 0 1px #decba9,0 5px 0 1px #eadbc0,0 18px 38px #75552b16}
+.wheel-frame:after{content:'';position:absolute;inset:3px;border:1px solid #d6b47666;border-radius:50%;pointer-events:none}
+#wheel g .wheel-slice{transition:filter .2s}
+#wheel g:hover .wheel-slice,#wheel g:focus .wheel-slice{filter:brightness(.97) saturate(1.1)}
+#wheel .wheel-food{filter:drop-shadow(0 5px 4px #70502b18);pointer-events:none}
+.wheel-pointer{top:17px;left:calc(50% - 13px);border-left-width:13px;border-right-width:13px;border-top:31px solid #bd3a28;filter:drop-shadow(0 3px 2px #74341c22)}
+#spin-center{width:82px;height:82px;border:5px solid #fffdf7;background:linear-gradient(145deg,#dc5237,#bd3626);box-shadow:0 0 0 1px #d9b596,0 5px 12px #8b412b28;transition:box-shadow .2s,background .2s}
+#spin-center:hover{background:#b93525;box-shadow:0 0 0 5px #fffdf766,0 6px 16px #8b412b33}
+#spin-center span{font-size:28px}#spin-center small{font-size:9px;letter-spacing:2px}
+.wheel-caption{margin:22px 0 12px;font-size:10px;letter-spacing:1px;color:#a28d73}
+.wheel-actions .spin-button{box-shadow:0 3px 0 #a93322;border-radius:13px}
+.refresh-button{box-shadow:0 2px 0 #e5d7bd;border-radius:13px;background:#fffdf7}
+.mode-banner{color:#a28c72}
+@media(max-width:850px){.wheel-stage{padding:26px 10px 0}.wheel-pointer{top:15px}.wheel-frame{border-width:6px}.wheel-caption{margin:19px 0 10px}#spin-center{width:70px;height:70px;border-width:4px}#spin-center span{font-size:26px}}
+@media(min-width:851px) and (max-height:800px){.wheel-stage{padding:22px 5px 0}.wheel-pointer{top:12px}#spin-center{width:69px;height:69px;border-width:4px}#spin-center span{font-size:25px}.wheel-caption{margin:18px 0 8px}}

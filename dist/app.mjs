@@ -13,7 +13,7 @@ let boardIds=[];
 const storeKey=()=>mode==='real'?store?.storeCode:'demo';
 const priceLabel=()=>mode==='real'?'官方核价':'演示参考价';
 function mealImage(m){return m.image?`<img class="food-image" src="${escape(m.image)}" alt="${escape(m.name)}" referrerpolicy="no-referrer">`:'<span class="food-placeholder">套餐图片暂缺</span>';}
-const colors=['#f7d47c','#fff0cf','#eac69e','#fce4a5','#f5d9c1','#fff2d9','#e8d7ab','#ffdca3'];
+const colors=['#ffe7a8','#fff8e8','#f9e1cf','#fff8e8','#ffe7a8','#fff8e8','#f9e1cf','#fff8e8'];
 const save=()=>{try{localStorage.setItem('meal-wheel-prefs',JSON.stringify({budget:prefs.budget,nonSpicy:prefs.nonSpicy,noBeef:prefs.noBeef,ttl,city:$('store-city').value.trim(),keyword:$('store-keyword').value.trim(),lastStore:store?{storeName:store.storeName,storeCode:store.storeCode}:null}))}catch{toast('浏览器未允许保存偏好')}};
 function toast(message,canUndo=false){clearTimeout(toastTimer);$('toast').querySelector('span').textContent=message;$('undo').hidden=!canUndo;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,5000)}
 function syncBudget(){let value=prefs.budget==null?'':String(prefs.budget);if(![...$('budget').options].some(o=>o.value===value)){const option=new Option(`${prefs.budget/100} 元以内`,value);$('budget').add(option)}$('budget').value=value}
@@ -24,7 +24,14 @@ function render(){
  // 盘面重排时回到正向，避免上次转动角度让新标签侧倒。
  rotation=0;$('wheel').style.transition='none';$('wheel').style.transform='rotate(0deg)';$('wheel').getBoundingClientRect();$('wheel').style.transition='';
  visible=pool();const n=visible.length;
- $('wheel').innerHTML=visible.map((m,i)=>{const start=i*360/n,end=(i+1)*360/n,a=polar(246,start),b=polar(246,end),mid=(i+.5)*360/n,pos=polar(160,mid);const d=n===1?'M250 4 A246 246 0 1 1 249.99 4 Z':`M250 250 L${a} A246 246 0 ${end-start>180?1:0} 1 ${b} Z`;const label=m.name.replace(/中套餐|三件套|套餐/g,'').replace(/【.*?】/g,'');const image=m.image?`<image href="${escape(m.image)}" x="${pos[0]-48}" y="${pos[1]-60}" width="96" height="70" preserveAspectRatio="xMidYMid meet"/>`:`<text x="${pos[0]}" y="${pos[1]-22}" text-anchor="middle" font-size="12">套餐图片暂缺</text>`;return `<g tabindex="0" role="button" data-id="${m.id}" aria-label="${escape(m.name)}，${priceLabel()}${m.price/100}元，查看或移除"><path d="${d}" fill="${colors[i]}" stroke="#fff9ed" stroke-width="3"/>${image}<text x="${pos[0]}" y="${pos[1]+26}" text-anchor="middle" font-size="${label.length>10?10:12}" font-weight="700" fill="#493827">${escape(label)}</text><text x="${pos[0]}" y="${pos[1]+43}" text-anchor="middle" font-size="10" fill="#8b7256">套餐 · ${money(m.price)}</text></g>`}).join('');
+ $('wheel').innerHTML=visible.map((m,i)=>{
+  const start=i*360/n,end=(i+1)*360/n,a=polar(246,start),b=polar(246,end),mid=(i+.5)*360/n,pos=polar(n===1?145:158,mid);
+  const d=n===1?'M250 4 A246 246 0 1 1 249.99 4 Z':`M250 250 L${a} A246 246 0 ${end-start>180?1:0} 1 ${b} Z`;
+  const label=m.name.replace(/中套餐|三件套|套餐/g,'').replace(/【.*?】/g,'');
+  const chars=Array.from(label),split=Math.ceil(chars.length/2),lines=chars.length>7?[chars.slice(0,split).join(''),chars.slice(split).join('')]:[label];
+  const image=m.image?`<image class="wheel-food" href="${escape(m.image)}" x="${pos[0]-60}" y="${pos[1]-74}" width="120" height="90" preserveAspectRatio="xMidYMid meet"/>`:`<text x="${pos[0]}" y="${pos[1]-22}" text-anchor="middle" font-size="12">套餐图片暂缺</text>`;
+  return `<g tabindex="0" role="button" data-id="${m.id}" aria-label="${escape(m.name)}，${priceLabel()}${m.price/100}元，查看或移除"><path class="wheel-slice" d="${d}" fill="${colors[i]}" stroke="#fffdf7" stroke-width="3"/>${image}<text class="wheel-name" x="${pos[0]}" y="${pos[1]+29}" text-anchor="middle" font-size="14" font-weight="700" fill="#44342a">${lines.map((line,j)=>`<tspan x="${pos[0]}" dy="${j?17:0}">${escape(line)}</tspan>`).join('')}</text><text class="wheel-price" x="${pos[0]}" y="${pos[1]+(lines.length>1?65:51)}" text-anchor="middle" font-size="12" fill="#977757">套餐 ${money(m.price)}</text></g>`;
+ }).join('');
  $('spin').disabled=locked||n===0;$('spin-center').disabled=locked||n===0;$('spin').innerHTML=n===1?'查看这一份 <span>↗</span>':'一键随机 <span>↗</span>';
  $('refresh-board').disabled=locked||meals.length===0;
  $('budget').disabled=locked;$('preferences-open').disabled=locked;$('reset').disabled=locked;$('restore').disabled=locked;$('clear').disabled=locked;
