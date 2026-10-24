@@ -1,8 +1,9 @@
+import {sameOrigin} from './origin.mjs';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 const tools=new Set(['now-time-info','query-nearby-stores','query-meals','query-meal-detail','query-store-coupons','calculate-price','list-nutrition-foods']);
 export function validateProxyRequest({host,origin,method,authorization,body}){
- if(host!=='127.0.0.1:5178'||origin!==`http://${host}`)return '仅允许本机同源网页访问';
+ if(!sameOrigin(host,origin))return '仅允许本机同源网页访问';
  if(method!=='POST')return '仅支持 POST';
  if(!/^Bearer \S+$/.test(authorization||''))return '需要个人 Token';
  if(!body||body.jsonrpc!=='2.0'||!['initialize','notifications/initialized','tools/list','tools/call'].includes(body.method))return '不支持的协议方法';
@@ -16,9 +17,9 @@ export async function proxyMcp(req,res,localCredential=''){
  try{
   let size=0,chunks=[];for await(const chunk of req){size+=chunk.length;if(size>256*1024){fail(413,'请求过大');return;}chunks.push(chunk);}
   let body;try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{fail(400,'参数不是有效 JSON');return;}
-  const error=validateProxyRequest({host:req.headers.host,origin:req.headers.origin,method:req.method,authorization:req.headers.authorization,body});
+  const useLocal=req.headers['x-mcd-local-credential']==='1'||req.headers.authorization==='Bearer local-file-credential';
+  const error=validateProxyRequest({host:req.headers.host,origin:req.headers.origin,method:req.method,authorization:useLocal?'Bearer local-file-credential':req.headers.authorization,body});
   if(error){fail(403,error);return;}
-  const useLocal=req.headers.authorization==='Bearer local-file-credential';
   if(useLocal&&!localCredential){fail(401,'本机未配置凭证文件');return;}
   const headers={Authorization:useLocal?`Bearer ${localCredential}`:req.headers.authorization,'Content-Type':'application/json',Accept:'application/json, text/event-stream'};
   for(const name of ['mcp-session-id','mcp-protocol-version'])if(req.headers[name])headers[name]=req.headers[name];

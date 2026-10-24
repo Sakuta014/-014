@@ -24,9 +24,10 @@ export class McpClient{
   const id=++this.id,controller=new AbortController();this.controllers.add(controller);
   const timer=setTimeout(()=>controller.abort(),20000);let stage='发送请求';
   try{
-   const headers={'Authorization':`Bearer ${this.token}`,'Content-Type':'application/json','Accept':'application/json, text/event-stream'};
+   const headers={'Content-Type':'application/json','Accept':'application/json, text/event-stream'};
+   if(this.token==='local-file-credential'&&this.url==='/api/mcp')headers['X-Mcd-Local-Credential']='1';else headers.Authorization=`Bearer ${this.token}`;
    if(this.session)headers['Mcp-Session-Id']=this.session;if(this.version)headers['MCP-Protocol-Version']=this.version;
-   const response=await (0,this.fetcher)(this.url,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',...(!notification?{id}:{}),method,params}),signal:controller.signal,credentials:'omit',redirect:'error'});
+   const response=await (0,this.fetcher)(this.url,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',...(!notification?{id}:{}),method,params}),signal:controller.signal,credentials:'same-origin',redirect:'error'});
    if(!response.ok)throw new Error(response.status===401?'Token 无效或已过期':`MCP 请求失败（HTTP ${response.status}）`);
    stage='读取响应头';const session=response.headers.get('Mcp-Session-Id');if(session)this.session=session;
    if(notification)return;

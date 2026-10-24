@@ -1,0 +1,37 @@
+services:
+  mai:
+    image: ${APP_IMAGE:-node:22-slim}
+    container_name: mcd-meal-wheel
+    user: "1000:1000"
+    working_dir: /app
+    command: ["node", "server.mjs"]
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      HOST: 0.0.0.0
+      PORT: 5178
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
+      MCD_TOKEN_FILE: /run/secrets/mcd-credential
+      MCD_CITY: ${MCD_CITY:-}
+      MCD_KEYWORD: ${MCD_KEYWORD:-}
+      MCD_STORE_CODE: ${MCD_STORE_CODE:-}
+    volumes:
+      - ./app:/app:ro
+      - ./data:/app/.local
+      - ./secrets/mcd-credential:/run/secrets/mcd-credential:ro
+    networks:
+      gateway:
+        aliases: [mcd-meal-wheel]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5178/api/runtime').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+networks:
+  gateway:
+    external: true

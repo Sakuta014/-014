@@ -12,3 +12,5 @@ test('fetch 调用不绑定客户端实例，兼容浏览器原生 fetch',async(
  const c=new McpClient('test-only',async function(url,options){assert.equal(this,undefined);const request=JSON.parse(options.body);return new Response(JSON.stringify({id:request.id,result:{ok:true}}),{headers:{'Content-Type':'application/json'}})});
  assert.deepEqual(await c.request('initialize',{}),{ok:true});
 });
+
+test('本机凭证连接保留站点登录凭据，绝不覆盖 Basic 登录头',async()=>{let options;const c=new McpClient('local-file-credential',async(url,input)=>{options=input;const body=JSON.parse(input.body);return new Response(JSON.stringify({id:body.id,result:{ok:true}}),{headers:{'Content-Type':'application/json'}});},'/api/mcp');await c.request('initialize',{});assert.equal(options.headers.Authorization,undefined);assert.equal(options.headers['X-Mcd-Local-Credential'],'1');assert.equal(options.credentials,'same-origin');});

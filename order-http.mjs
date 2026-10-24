@@ -1,9 +1,10 @@
+import {sameOrigin} from './origin.mjs';
 import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {McpClient} from './dist/mcp.mjs';
 import {unwrapResult} from './dist/adapter.mjs';
 import {OrderService} from './orders.mjs';
-export function validateOrderRequest(req){if(req.headers.host!=='127.0.0.1:5178'||req.headers.origin!=='http://127.0.0.1:5178')return '仅允许本机同源网页访问';if(req.method!=='POST')return '仅支持 POST';return null;}
+export function validateOrderRequest(req){if(!sameOrigin(req.headers.host,req.headers.origin))return '仅允许本机同源网页访问';if(req.method!=='POST')return '仅支持 POST';return null;}
 export async function createOrderHandler({token,statePath}){
  let records=[];try{records=JSON.parse(await readFile(statePath,'utf8'));if(!Array.isArray(records))throw Error('订单记录格式错误');}catch(e){if(e.code!=='ENOENT')throw e;}
  let writing=Promise.resolve();

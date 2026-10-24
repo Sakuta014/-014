@@ -40,7 +40,7 @@ npm start
 
 ## 技术与测试
 
-`dist/` 为前端，`server.mjs` 提供本地预览和可选薄代理。当前官方服务不允许本地网页跨域请求，真实模式使用 `/api/mcp` 同源中转：仅监听 127.0.0.1、固定官方上游、校验 Origin、限制协议和工具，不记录凭证或业务响应。公网部署需要另行部署安全的同源代理；仅静态托管无法保证真实模式可用。
+`dist/` 为前端，`server.mjs` 提供本地预览和可选薄代理。当前官方服务不允许本地网页跨域请求，真实模式使用 `/api/mcp` 同源中转：仅监听 127.0.0.1、固定官方上游、校验 Origin、限制协议和工具，不记录凭证或业务响应。公网部署使用同一个 Node 服务和 Caddy HTTPS 入口；仅静态托管无法提供真实接口。部署模板见 `deploy/compose.server.yml` 与 `deploy/Caddyfile.example`。
 
 ```sh
 npm test
@@ -59,3 +59,11 @@ node scripts/verify-live.mjs /path/to/private-credential.txt 南京 新街口
 
 独立参赛作品，非麦当劳官方产品；仓库不包含个人凭证。
 
+
+## 公网部署
+
+在服务器创建独立目录，代码放 `app/`，订单记录目录为 `data/`，Token 文件放 `secrets/mcd-credential`（目录 700、文件 600）。把 `deploy/compose.server.yml` 复制为部署目录根部的 `docker-compose.yml`；参考 `deploy/server.env.example` 配置同目录 `.env`。数据与凭证目录不得打包进代码或上传 GitHub。
+
+现有 Caddy 与应用加入同一个 `gateway` Docker 网络；应用不发布宿主机端口，Caddy 反向代理到 `mcd-meal-wheel:5178`。必须为整个域名配置 `basic_auth` 体验密码，再开放访问。`PUBLIC_ORIGIN` 应精确设置为 HTTPS 域名，写操作仍严格校验 Host 与 Origin。
+
+浏览器自动使用站点登录身份连接同源接口；本机凭证使用单独的请求标记，避免覆盖 Caddy 的登录头。Token 始终由后端读取，只转发至官方接口。上线验证只做查询、核价与订单准备，不自动创建真实订单。

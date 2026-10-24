@@ -160,7 +160,7 @@ async function connectLocal(){
 }
 $('reconnect').onclick=connectLocal;
 const startupGeneration=generation;
-fetch('/api/runtime',{credentials:'omit'}).then(r=>{if(!r.ok)throw new Error('本机服务不可用');return r.json();}).then(async r=>{
+fetch('/api/runtime',{credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error('本机服务不可用');return r.json();}).then(async r=>{
  runtimeConfig=r;if(generation!==startupGeneration)return;
  if(r.localCredential)await connectLocal();else{$('settings-dialog').showModal();$('connection-status').textContent='餐厅连接暂不可用，请检查本机服务配置';$('reconnect').hidden=false;}
 }).catch(e=>{if(generation!==startupGeneration)return;toast(e.message);$('settings-dialog').showModal();});

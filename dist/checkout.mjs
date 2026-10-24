@@ -8,7 +8,7 @@ export function mountCheckout(getSelection){
  function remember(id){lastId=id;view.hidden=false;try{sessionStorage.setItem('meal-order-id',id);}catch{}}
  function setBusy(value){busy=value;close.disabled=value;}
  close.onclick=()=>{if(!busy)dialog.close();};dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
- async function api(action,input){const response=await fetch('/api/order/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input),credentials:'omit',redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'订单处理暂不可用');return data;}
+ async function api(action,input){const response=await fetch('/api/order/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input),credentials:'same-origin',redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'订单处理暂不可用');return data;}
  function show(){if(!dialog.open)dialog.showModal();}
  function error(message){body.innerHTML=`<span class="eyebrow">CHECK AGAIN</span><h2>还没确认好</h2><p class="order-message" role="alert">${escape(message)}</p><button class="primary" id="prepare-again">重新核价</button>`;document.getElementById('prepare-again').onclick=open;}
  function renderDraft(d){
